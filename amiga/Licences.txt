@@ -1,0 +1,13 @@
+uLarn: licences
+===============
+
+The game: Ularn by Phil Cordier (1992), after Larn by Noah Morgan,
+updated by Josh Brandt and David Richerby, https://github.com/ularn/ularn.
+
+- The program, the help, the cave levels and the fortunes (Data/) are
+  under the GNU General Public Licence, version 2 (COPYING.txt).
+- The Amiga port's own files (amiga/, AMIGA_PORT.md, tests/) are under
+  the GNU GPL version 2, like the game; package/ and tools/ are MIT. The
+  GlowIcon art is The AmiCradle Team's own.
+- The source the program is built from: upstream at the commit named in
+  ReadMe, with this repository's amiga/patches.

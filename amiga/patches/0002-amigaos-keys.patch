@@ -1,0 +1,60 @@
+diff --git a/src/tok.c b/src/tok.c
+index df0c136..4e573e6 100644
+--- a/src/tok.c
++++ b/src/tok.c
+@@ -3,6 +3,9 @@
+ #include "player.h"
+ #include "monst.h"
+ #include "extern.h"
++#ifdef __amigaos__
++#include "amiga_tty.h"
++#endif
+ extern int nonap;
+ 
+ #define MAXUM 52	/* maximum number of user re-named monsters */
+@@ -41,6 +44,7 @@ char yylex ()
+ 	lflush();
+ 	while (1) {
+ 		c[BYTESIN]++;
++#ifndef __amigaos__	/* no fork(): no checkpoint in the background */
+ 		if (ckpflag)
+ 			/* check for periodic checkpointing */
+ 			if (c[BYTESIN] == 1
+@@ -54,10 +58,18 @@ char yylex ()
+ 					exit(0);
+ 				}
+ 			}
++#endif /* __amigaos__ */
+ 		flushall();
++#ifdef __amigaos__
++		/* a key as getcharacter() gives it: Return as NL, the cursor
++		   keys as hjkl, the window's end saving the game */
++		cc = (unsigned char)getcharacter();
++#else
+ 		if ((cc = getchar()) == EOF)
+ 			return(lastok = -1);
++#endif
+ 
++#ifndef __amigaos__	/* no Unix shell to escape to */
+ 		/* shell escape */
+ 		if (cc == '!')	{
+ 			int pgrp;
+@@ -103,6 +115,7 @@ char yylex ()
+ 			}
+ 			return(lastok = 'L'-64);	/* redisplay screen */
+ 		}
++#endif /* __amigaos__ */
+ 		if ((cc <= '9') && (cc >= '0'))
+ 			yrepcount = yrepcount*10 + cc - '0';
+ 		else {	
+@@ -118,7 +131,9 @@ char yylex ()
+  */
+ void flushall()
+ {
+-#ifdef TCFLSH
++#if defined(__amigaos__)
++	amiga_flushkeys();
++#elif defined(TCFLSH)
+         ioctl(0, TCFLSH, 0);		/* standard ioctl to flush buffer */
+ #else
+ #  ifdef FIONREAD

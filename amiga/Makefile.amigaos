@@ -1,0 +1,78 @@
+# uLarn for GFOS (AmigaOS 3.2 with GFOpenUp), 68040/68060: a console game,
+# built soft float with the stove's fpuauto (the FPU is used when the Amiga
+# has one).
+#
+#   make -f amiga/Makefile.amigaos -j4 UL=/path/to/ularn [STOVE=...]
+#
+# UL is upstream at the commit package/ularn.lock names, with
+# amiga/patches applied (package/build-amiga.sh does both). STOVE is a
+# GFOpenAmigaGCC 16.2.0-open6 stove (prefix/ has the compiler and the
+# NDK). Upstream's tty.c is not built: amiga/amiga_tty.c sets the console's
+# mode, amiga/amiga_term.c answers termcap, amiga/amiga_keys.c reads the
+# keys; amiga/include/config.h is what upstream's configure would write.
+#
+# Output: build/amigaos/uLarn/ (the drawer: uLarn, Data/ with the help,
+# the cave levels and the fortunes, ReadMe, the licence, User/, with
+# GlowIcons), build/amigaos/uLarn.info and Install-uLarn beside them.
+
+UL      ?= ../ularn
+STOVE   ?= $(HOME)/AmiCradle/stoves/os32-gcc16-open6
+PREFIX  ?= $(STOVE)/prefix
+CC      = $(PREFIX)/bin/m68k-amigaos-gcc
+CPU     ?= -m68040 -msoft-float
+# -fno-tree-loop-distribute-patterns: GCC 16's loop miscompile.
+OPT     ?= -Os -fomit-frame-pointer -fno-tree-loop-distribute-patterns
+
+# uLarn is 1990s C (implicit int, old-style definitions): gnu89, and its
+# own warnings are upstream's, not the port's (-w for upstream's files).
+DEFS    = -D__amigaos__ -DLIBDIR=\"PROGDIR:Data\"
+INC     = -Iamiga/include -Iamiga -I$(UL)/src
+CFLAGS  = -noixemul $(OPT) $(CPU) -std=gnu89 $(DEFS) $(INC)
+LDFLAGS = -noixemul $(CPU)
+
+BUILD   = build/amigaos
+OBJDIR  = $(BUILD)/obj
+OUT     = $(BUILD)/uLarn
+PROG    = uLarn
+
+UPSTREAM = action bill create data diag display fortune help io main \
+           monster moreobj movem nap object player regen savelev scores \
+           show signal sphere store tok
+AMIGA   = amiga_tty amiga_term amiga_keys
+OBJS    = $(UPSTREAM:%=$(OBJDIR)/ul/%.o) $(AMIGA:%=$(OBJDIR)/%.o)
+
+all: $(OUT)/$(PROG) package
+
+$(OUT)/$(PROG): $(OBJS)
+	@mkdir -p $(OUT)
+	$(CC) $(LDFLAGS) -o $@ $(OBJS)
+
+$(OBJDIR)/ul/%.o: $(UL)/src/%.c $(wildcard $(UL)/src/*.h) amiga/include/config.h
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -w -c -o $@ $<
+
+$(OBJDIR)/%.o: amiga/%.c $(wildcard amiga/*.h)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -Wall -Wno-implicit-int -Wno-parentheses -c -o $@ $<
+
+package: $(OUT)/$(PROG) AMIGA_PORT.md amiga/Licences.txt
+	mkdir -p $(OUT)/User $(OUT)/Data
+	cp $(UL)/data/Uhelp $(UL)/data/Umaps $(UL)/data/Ufortune $(OUT)/Data/
+	cp AMIGA_PORT.md $(OUT)/ReadMe
+	cp $(UL)/README $(OUT)/ReadMe-uLarn
+	cp $(UL)/LICENSE $(OUT)/COPYING.txt
+	cp amiga/Licences.txt $(OUT)/Licences.txt
+	cp amiga/icons/uLarn.info amiga/icons/ReadMe.info $(OUT)/
+	for f in ReadMe-uLarn COPYING.txt Licences.txt; do \
+	    cp amiga/icons/ReadMe.info $(OUT)/$$f.info; done
+	cp amiga/icons/Data.info $(OUT)/User.info
+	cp amiga/icons/Data.info $(OUT)/Data.info
+	cp amiga/icons/uLarn-drawer.info $(BUILD)/uLarn.info
+	cp amiga/Install-uLarn amiga/Install-uLarn.info $(BUILD)/
+
+objs: $(OBJS)
+
+clean:
+	rm -rf $(BUILD)
+
+.PHONY: all package objs clean
