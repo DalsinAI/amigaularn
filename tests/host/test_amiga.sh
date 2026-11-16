@@ -32,9 +32,22 @@ for p in "$ROOT"/amiga/patches/*.patch; do
 done
 echo "patches: $(ls "$ROOT"/amiga/patches/*.patch | wc -l) apply to $UL_COMMIT"
 if command -v autoreconf >/dev/null 2>&1 && [ -n "$(command -v ncurses6-config || ls /usr/include/term.h 2>/dev/null)" ]; then
-    (cd "$T/ul" && autoreconf -fi >/dev/null 2>&1 && CFLAGS="-std=gnu89 -w" ./configure -q >/dev/null && make -s -C src >/dev/null 2>&1) \
-        && echo "host build with the patches: ok" \
-        || { echo "FAIL: upstream with the patches does not build on the host"; exit 1; }
+    host_build() {
+        (cd "$1" && autoreconf -fi >/dev/null 2>&1 && CFLAGS="-std=gnu89 -w" ./configure -q >/dev/null 2>&1 && make -s -C src >/dev/null 2>&1)
+    }
+    if host_build "$T/ul"; then
+        echo "host build with the patches: ok"
+    else
+        # upstream's tty.c needs termio.h or sgtty.h; glibc 2.42 has neither,
+        # so check that unpatched upstream builds here before blaming the patches
+        cp -R "$T/ul" "$T/ul0"
+        (cd "$T/ul0" && make -s distclean >/dev/null 2>&1; \
+         for p in $(ls -r "$ROOT"/amiga/patches/*.patch); do patch -s -R -p1 < "$p"; done) || exit 1
+        if host_build "$T/ul0"; then
+            echo "FAIL: upstream with the patches does not build on the host"; exit 1
+        fi
+        echo "host build skipped: unpatched upstream does not build on this host either"
+    fi
 else
     echo "host build skipped: no autoreconf or ncurses headers here"
 fi
