@@ -1,0 +1,14 @@
+{
+  "name": "uLarn",
+  "version": "1.7.0-gfos1",
+  "drawer": "uLarn",
+  "program": "uLarn",
+  "cpu": "68040",
+  "fpu": false,
+  "space": 400000,
+  "modules": [],
+  "keep": ["User"],
+  "parent": "Work:Games",
+  "badge": "icons/art/ularn.png",
+  "script": "Install-uLarn"
+}

@@ -1,0 +1,6 @@
+# The upstream uLarn the port builds: fetched at this commit by
+# package/build-amiga.sh, never kept in this repository.
+UL_URL=https://github.com/ularn/ularn
+UL_COMMIT=ef421842add954c55639656c5973042963c9b258
+UL_VERSION=1.7.0
+PORT_VERSION=1.7.0-gfos1

@@ -1,0 +1,140 @@
+diff --git a/src/io.c b/src/io.c
+index 1eb6dba..95cc8b5 100644
+--- a/src/io.c
++++ b/src/io.c
+@@ -47,6 +47,10 @@
+  */
+ #include "header.h"
+ #include "extern.h"
++#ifdef __amigaos__
++#include "player.h"
++#include "amiga_tty.h"
++#endif
+ 
+ #include <term.h>
+ 
+@@ -65,8 +69,24 @@ getcharacter ()
+ {
+ 	char byt;
+ 	lflush();		/* be sure output buffer is flushed */
++#ifdef __amigaos__
++	{
++		int k = amiga_getkey();
++
++		if (k == EOF) {	/* the window closed: save, as S does */
++			clear();
++			lprcat("Saving . . .");
++			lflush();
++			savegame(savefilename);
++			wizard=1;
++			died(-257);
++		}
++		byt = k;
++	}
++#else
+ /*        byt=getchar();		/* get character from terminal */
+ 	byt=getc(stdin);
++#endif
+ 	return(byt);
+ }
+ 
+diff --git a/src/main.c b/src/main.c
+index ef22b0d..f08d433 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -4,6 +4,9 @@
+ #include "player.h"
+ #include "itm.h"
+ #include "extern.h"
++#ifdef __amigaos__
++#include "amiga_tty.h"
++#endif
+ 
+ static char copyright[]=
+ "\nUlarn created by Phil Cordier -- based on Larn by Noah Morgan\n  Updated by Josh Brandt and David Richerby\n";
+@@ -45,14 +48,33 @@ char *argv[];
+ {
+ 	int i, hard;
+ 	char *getenv(), *getlogin(), *ptr=0;
++#ifndef __amigaos__
+ 	struct passwd *pwe,*getpwuid();
++#endif
+ 	extern char *optarg;
+ 	extern int optind, opterr;
++#ifdef __amigaos__
++	static char *wb_argv[] = { "uLarn", (char *)NULL };
++
++	if (argc == 0) {	/* started from Workbench */
++		argc = 1;
++		argv = wb_argv;
++	}
++	if (!amiga_open_window())
++		exit(20);
++#endif
+ 
+ 
+ /*
+  *	first task is to identify the player
+  */
++#ifdef __amigaos__
++	ptr = amiga_player_name();
++	if (0) {
++noone:		fprintf(stderr,"Who *are* you?\n");
++		exit(1);
++	}
++#else
+ 	if ((ptr = getlogin()) == (char *)NULL) {
+ 	  	if (pwe=getpwuid(geteuid()))
+ 			ptr = pwe->pw_name;
+@@ -62,6 +84,7 @@ noone:		    	fprintf(stderr,"Who *are* you?\n");
+ 			exit(1);
+ 		 }
+ 	}
++#endif /* __amigaos__ */
+ 	if (ptr==(char *)NULL)
+ 		goto noone;
+ 	if (strlen(ptr)==0)
+@@ -82,9 +105,16 @@ noone:		    	fprintf(stderr,"Who *are* you?\n");
+ 	strcpy(logname,ptr);	
+ 
+ 	/* this will be overwritten with the players name */
++#ifdef __amigaos__
++	/* the saves, the options and the scoreboard: the drawer's User drawer,
++	   which an update of the game leaves alone */
++	ptr = "PROGDIR:User";
++	mkdir(ptr, 0755);
++#else
+ 	if ((ptr = getenv("HOME")) == (char *)NULL)
+ 		if ((ptr = pwe->pw_dir) == (char *)NULL)
+ 			ptr = ".";
++#endif
+ 
+ 	/* save file name in home directory */
+ 	sprintf(savefilename, "%s/Ularn.sav", ptr);
+@@ -93,7 +123,11 @@ noone:		    	fprintf(stderr,"Who *are* you?\n");
+ 
+ 	sprintf(ckpfile, "%s/Ularn.ckp", ptr);		/* the checkpoint file */
+ 
++#ifdef __amigaos__
++	sprintf(scorefile, "%s/%s", ptr, SCORENAME); /* the Ularn scoreboard filename */
++#else
+ 	sprintf(scorefile, "%s/%s", libdir, SCORENAME); /* the Ularn scoreboard filename */
++#endif
+ 
+ 	sprintf(helpfile, "%s/%s", libdir, HELPNAME); 	/* the Ularn on-line help file */
+ 
+diff --git a/src/nap.c b/src/nap.c
+index 0a0d89a..32a3069 100644
+--- a/src/nap.c
++++ b/src/nap.c
+@@ -19,7 +19,9 @@ void nap(int x)
+ 	else ularn_napms(x);
+ }
+ 
+-#ifdef HAVE_SETITIMER
++#if defined(__amigaos__)
++/* ularn_napms is amiga/amiga_tty.c's (dos.library Delay) */
++#elif defined(HAVE_SETITIMER)
+ #define bit(_a) (1<<((_a)-1))
+ 
+ RETSIGTYPE nullf(sig)int sig; { }
