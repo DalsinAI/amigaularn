@@ -55,8 +55,12 @@ int main(void)
 	keys("plain", "hj\rklq", 6, k1, 7);
 	keys("CSI cursor", "\233A\233B\233C\233D", 8, k2, 5);
 	keys("Esc [ cursor", "\033[A\033[B\033[C\033[D", 12, k2, 5);
-	/* F1 (CSI 0~), a window event (CSI 11;0;0;0;0;0;0;0|), Help (CSI ?~) */
-	keys("CSI dropped", "\2330~i\23311;0;0;0;0;0;0;0|\233?~x", 26, k3, 6);
+	/* F1 (CSI 0~), a window event (resized: CSI 12;0;0;0;0;0;0;0|), Help (CSI ?~) */
+	keys("CSI dropped", "\2330~i\23312;0;0;0;0;0;0;0|\233?~x", 26, k3, 6);
+	/* the close gadget (CSI 11;...|) ends the input, keys after it or not;
+	 * class 1 (a raw key event) is not it */
+	keys("close gadget", "i\23311;0;0;0;0;0;0;0|x", 20, (const int[]){ 'i', EOF }, 2);
+	keys("class 1 event", "\2331;0;0;0;0;0;0;0|x", 18, (const int[]){ 0, 'x', EOF }, 3);
 	keys("Esc", "\033q\033", 3, k4, 4);
 	keys("CSI cut short", "\2331", 2, (const int[]){ EOF }, 1);
 

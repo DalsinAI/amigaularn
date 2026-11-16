@@ -87,6 +87,10 @@ int amiga_open_window(void)
 		return 0;
 	}
 	setvbuf(stdin, NULL, _IONBF, 0); /* a key is read as it comes */
+	/* in raw mode the close gadget sends nothing unless its raw event
+	 * (class 11) is asked for: it then comes as CSI 11;...| */
+	fputs("\23311{", stdout);
+	fflush(stdout);
 	return 1;
 }
 
