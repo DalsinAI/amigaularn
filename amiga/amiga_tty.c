@@ -38,6 +38,10 @@
 
 extern struct GfxBase *GfxBase;
 
+/* Version shows it; __attribute__((used)) keeps it past --gc-sections */
+static const char version[] __attribute__((used)) =
+    "$VER: uLarn 1.7.0 (16.11.2026)";
+
 static BPTR console;
 static int raw;
 
